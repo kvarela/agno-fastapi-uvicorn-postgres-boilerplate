@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 import os
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, Column, Integer, Text
@@ -36,6 +36,7 @@ Base.metadata.create_all(bind=engine)
 # Define request model
 class ChatRequest(BaseModel):
     message: str
+    include_history: Optional[bool] = True
 
 # Initialize Agno agent
 def create_agent():
@@ -50,15 +51,39 @@ def create_agent():
 # Create agent instance
 agent = create_agent()
 
+def get_recent_chat_history(db, limit: int = 5) -> List[dict]:
+    """Get recent chat history from the database."""
+    history = db.query(ChatHistory).order_by(ChatHistory.id.desc()).limit(limit).all()
+    return [
+        {
+            "user": entry.user_input,
+            "assistant": entry.agent_response
+        }
+        for entry in reversed(history)
+    ]
+
 @app.post("/chat")
 async def chat(request: ChatRequest):
     try:
+        db = SessionLocal()
+        
+        # Get context from previous conversations if requested
+        context = ""
+        if request.include_history:
+            history = get_recent_chat_history(db)
+            if history:
+                context = "Previous conversation:\n"
+                for entry in history:
+                    context += f"User: {entry['user']}\nAssistant: {entry['assistant']}\n\n"
+        
+        # Combine context with current message
+        full_message = f"{context}Current message: {request.message}"
+        
         # Get response from agent
-        response = agent.run(request.message).content
+        response = agent.run(full_message).content
         print(f"Response: {response}")
         
         # Store in database
-        db = SessionLocal()
         chat_entry = ChatHistory(
             user_input=request.message,
             agent_response=response
