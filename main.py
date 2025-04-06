@@ -2,10 +2,15 @@ from fastapi import FastAPI
 from typing import List
 from dotenv import load_dotenv
 from health import router as health_router
-from chat import router as chat_router
+from chat.chat import router as chat_router
+from chat.models import ChatHistory, ChatEmbedding  # Import models explicitly
+from database import init_db  # Import database initialization
 
 # Load environment variables
 load_dotenv()
+
+# Initialize database and create tables
+init_db()
 
 # Initialize FastAPI app
 app = FastAPI()
