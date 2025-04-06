@@ -2,8 +2,8 @@ from fastapi import APIRouter, UploadFile, File, HTTPException
 import PyPDF2
 import io
 from database import SessionLocal
-from .models import ChatEmbedding
-from .chat import get_embedding
+from chat.models import ChatEmbedding
+from chat.chat import get_embedding
 
 router = APIRouter()
 

@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from typing import List
 from database import SessionLocal
 from agno.agent import Agent
+from agno.team import Team
 from agno.models.openai import OpenAIChat
 from agno.tools.duckduckgo import DuckDuckGoTools
 from .models import ChatHistory, ChatEmbedding
@@ -15,18 +16,52 @@ router = APIRouter()
 # Initialize OpenAI client
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# Initialize Agno agent
-def create_agent():
-    return Agent(
-        name="chat_agent",
+# Initialize Researcher agent
+researcher = Agent(
+        name="Researcher",
         tools=[DuckDuckGoTools()],
-        description="A chat agent that can answer questions and help with tasks",
+        description="A specialized agent that performs web research on topics. It uses DuckDuckGo to search the web and gather information.",
         model=OpenAIChat(id='gpt-4o'),
         show_tool_calls=True
     )
 
-# Create agent instance
-agent = create_agent()
+# Create agent instances
+mcp_agent = Team(
+    name="Support Team",
+    mode="coordinate",
+    model=OpenAIChat("gpt-4o"),
+    members=[researcher],
+    instructions=[
+        "Utilize a specialized agent to find information or perform tasks when needed.",
+        "Utilize the researcher agent to perform web research when needed.",
+        "If the user asks for information about the company, use the researcher agent to find information.",
+        "If the user asks for information about the product, use the researcher agent to find information.",
+        "If the user asks for information about the team, use the researcher agent to find information.",
+        "If the user asks for information about the roadmap, use the researcher agent to find information.",
+        "If the user asks for information about the pricing, use the researcher agent to find information.",
+        "If the user asks for information about the FAQ, use the researcher agent to find information.",
+        "If the user asks for information about the terms of service, use the researcher agent to find information.",
+        "If the user asks for information about the privacy policy, use the researcher agent to find information.",
+        "If the user asks for information about the refund policy, use the researcher agent to find information.",
+        "If the user asks for information about the contact information, use the researcher agent to find information.",
+        "If the user asks for information about the support, use the researcher agent to find information.",
+        "If the user asks for information about the help, use the researcher agent to find information.",
+        "If the user asks for information about the billing, use the researcher agent to find information.",
+        "If the user asks for information about the account, use the researcher agent to find information.",
+        "If the user asks for information about the subscription, use the researcher agent to find information.",
+        "If the user asks for information about the payment, use the researcher agent to find information.",
+        "If the user asks for information about the invoice, use the researcher agent to find information.",
+        "If the user asks for information about the receipt, use the researcher agent to find information.",
+        "If the user asks for information about the order, use the researcher agent to find information.",
+        "If the user asks for information about the shipping, use the researcher agent to find information.",
+        
+        
+    ],
+    show_tool_calls=True,
+    markdown=True,
+    debug_mode=True,
+    show_members_responses=True,
+)
 
 def get_embedding(text: str) -> list:
     """Get embedding for text using OpenAI's API."""
@@ -75,6 +110,10 @@ def store_memory(db, text: str):
     db.add(memory)
     db.commit()
 
+# Function to handle research requests
+async def handle_research(query: str) -> str:
+    return researcher_agent.run(query).content
+
 @router.post("/chat")
 async def chat(request: ChatRequest):
     try:
@@ -93,8 +132,13 @@ async def chat(request: ChatRequest):
         # Combine context with current message
         full_message = f"{context}Current message: {request.message}"
         
+        # Check if the message requires research
+        if "research" in request.message.lower() or "find information about" in request.message.lower():
+            research_result = await handle_research(request.message)
+            full_message = f"{context}Research results: {research_result}\n\nCurrent message: {request.message}"
+        
         # Get response from agent
-        response = agent.run(full_message).content
+        response = mcp_agent.run(full_message).content
         
         # Store the conversation in both chat history and memory
         chat_entry = ChatHistory(
