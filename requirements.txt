@@ -1,0 +1,11 @@
+duckduckgo-search
+fastapi
+uvicorn
+python-dotenv
+agno
+openai
+psycopg2-binary
+pgvector
+sqlalchemy
+pydantic
+python-multipart
