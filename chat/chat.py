@@ -7,7 +7,6 @@ from agno.tools.duckduckgo import DuckDuckGoTools
 from .models import ChatHistory, ChatEmbedding
 from .chat_request import ChatRequest
 from sqlalchemy import text
-import json
 import openai
 import os
 
