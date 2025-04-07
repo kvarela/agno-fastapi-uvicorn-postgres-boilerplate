@@ -53,9 +53,7 @@ mcp_agent = Team(
         "If the user asks for information about the invoice, use the researcher agent to find information.",
         "If the user asks for information about the receipt, use the researcher agent to find information.",
         "If the user asks for information about the order, use the researcher agent to find information.",
-        "If the user asks for information about the shipping, use the researcher agent to find information.",
-        
-        
+        "If the user asks for information about the shipping, use the researcher agent to find information.",   
     ],
     show_tool_calls=True,
     markdown=True,
@@ -112,7 +110,7 @@ def store_memory(db, text: str):
 
 # Function to handle research requests
 async def handle_research(query: str) -> str:
-    return researcher_agent.run(query).content
+    return researcher.run(query).content
 
 @router.post("/chat")
 async def chat(request: ChatRequest):
